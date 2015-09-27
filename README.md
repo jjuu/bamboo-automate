@@ -244,3 +244,75 @@ Add a task and look at the POST parameters. You don't have to specify all of the
     myproj_plan_keys = filter(lambda s: re.match(project,s) != None, plan_keys)
     print 'PLAN KEYS IN PROJECT %s = %s' % (project, myproj_plan_keys)
 
+
+
+#######################################################
+#### Create Connection  Either use username and password
+
+logging.basicConfig(level=logging.DEBUG)
+host='http://localhost:6990'
+user_name='admin'
+user_pwd='admin'
+conn = authenticate(host, user_name, user_pwd)
+
+
+
+#### enable/disable plans and jobs
+plan_id = 'SWRD-CM'
+disable_plan(conn, plan_id)
+enable_plan(conn, plan_id)
+
+job_id = 'SWRD-CM-JOB2'
+disable_job(conn, job_id)
+enable_job(conn, job_id)
+
+
+#### add a new job to each plan
+plan_id = 'SWRD-CM'
+job_name = 'job6'
+job_description = 'job6_description'
+res = add_one_job(conn, plan_id, job_name, job_description)
+
+
+#### Modify environment variables for each job
+job_id = 'SWRD-CM-JOB4'
+task_id = 2
+environment_variables = "JAVA_OPTS=\"-Xmx256m -Xms128m\""
+res = update_environment_variables(conn, job_id, task_id, environment_variables)
+
+
+
+#### Add a repository to each job
+job_id = 'SWRD-CM-JOB01'
+task_id = 1
+repository_id = "2343563"
+checkout_dir = "community/poky12"
+res = add_repository(conn, job_id, task_id, repository_id, checkout_dir)
+
+
+
+#### Modify permissions on each job
+plan_id = 'SWRD-CM'
+#usertype, username, permissiontype, value
+change_plan_permission(conn, plan_id, ('user', 'username', 'clone', False))
+
+
+#### Add a task about "script" type
+job_id = "DNSWRD-CIM-JOB5"
+task_description = "1234"
+is_task_disabled = False
+is_run_with_power_shell = True
+script_location = "INLINE"
+script = "pwd"
+argument = ""
+environment_variables = ""
+working_sub_directory = ""
+add_job_task_script(conn, job_id, is_task_disabled, is_run_with_power_shell, task_description, script_location, script,
+                    argument, environment_variables, working_sub_directory)
+
+
+#### Add agents to each job
+job_id="DNSWRD-CIM-JOB11"
+req_key="agent.name"
+req_value="agent"
+res=add_job_requirement(conn, job_id, req_key, req_value)
