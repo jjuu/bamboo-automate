@@ -8,9 +8,9 @@ def _check_permission(html_root, usertype, username, permission):
     username = 'ROLE_USER'
   elif username == 'Anonymous Users':
     username = 'ROLE_ANONYMOUS'
-  permission_input_field_name = 'bambooPermission_'+usertype+'_'+username+'_'+permission.upper()
-  permission_cell_name = permission_input_field_name+'_cell'
-  permission_xpath = './/td[@id="'+permission_cell_name+'"]/input[@name="'+permission_input_field_name+'"]'
+  permission_input_field_name = 'bambooPermission_'+usertype+'_'+username+'_'+permission.upper()#bambooPermission_user_B19537_READ
+  #permission_cell_name = permission_input_field_name+'_cell'
+  permission_xpath = './/input[@name="'+permission_input_field_name+'"]'
   logging.debug('xpath to search for permission checkbox = %s' % permission_xpath)
   el = html_root.find(permission_xpath)
   if el == None:
@@ -69,16 +69,19 @@ def get_plan_permissions(conn, plan_id):
 
 
 def mod_plan_permissions(conn, plan_id, permission_params):
+
   params = {
+      "bamboo.successReturnMode": "json",
       "buildKey": plan_id,
       "newGroup": None,
       "newUser": None,
       "principalType": "User",
       "save": "Save",
-      "selectFields": "principalType"
+      "selectFields": "principalType",
+
       }
   params.update(permission_params)
-  res = requests.post_ui_return_html(
+  res = requests.post_ui_return_json(
       conn,
       conn.baseurl+'/chain/admin/config/updateChainPermissions.action',
       params)

@@ -43,6 +43,8 @@ def change_plan_permission(conn, plan_key, permission):
 
   usertype, username, permissiontype, value = permission
   permissions = get_plan_permissions(conn, plan_key)
+  if username not in permissions[usertype].iterkeys():
+      permissions[usertype][username]={'read': False, 'write': False, 'clone': False, 'admin': False, 'build': False}
   try:
     if permissiontype == 'all':
       for key in permissions[usertype][username].iterkeys():
