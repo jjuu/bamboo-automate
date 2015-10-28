@@ -223,8 +223,9 @@ def add_repository(conn, job_id, task_id, repository_id, checkout_dir):
     return update_task(conn, job_id, task_id, task_params)
 
 
-def add_job_task_script(conn, job_id, is_task_disabled=False, task_description="", script_location="INLINE",
-                        script="pwd", argument="", environment_variables="", working_sub_directory=""):
+def add_job_task_script(conn, job_id, is_task_disabled=False, is_run_with_power_shell=False, task_description="",
+                        script_location="INLINE", script="pwd", argument="", environment_variables="",
+                        working_sub_directory=""):
     script_params = {
         "userDescription": task_description,
         "checkBoxFields": "taskDisabled",
@@ -245,5 +246,7 @@ def add_job_task_script(conn, job_id, is_task_disabled=False, task_description="
     }
     if is_task_disabled:
         script_params['taskDisabled'] = 'true'
+    if is_run_with_power_shell:
+        script_params['runWithPowershell'] = 'true'
 
     return add_job_task(conn, job_id, script_params)

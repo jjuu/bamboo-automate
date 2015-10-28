@@ -140,10 +140,11 @@ change_plan_permission(conn, plan_id, ('user', 'username', 'clone', False))
 job_id = "DNSWRD-CIM-JOB5"
 task_description = "1234"
 is_task_disabled = False
+is_run_with_power_shell = True
 script_location = "INLINE"
 script = "pwd"
 argument = ""
 environment_variables = ""
 working_sub_directory = ""
-add_job_task_script(conn, job_id, is_task_disabled,task_description, script_location, script, argument, environment_variables,
-                    working_sub_directory)
+add_job_task_script(conn, job_id, is_task_disabled, is_run_with_power_shell, task_description, script_location, script,
+                    argument, environment_variables, working_sub_directory)
