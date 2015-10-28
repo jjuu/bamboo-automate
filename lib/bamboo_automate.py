@@ -134,3 +134,16 @@ res = add_repository(conn, job_id, task_id, repository_id, checkout_dir)
 plan_id = 'SWRD-CM'
 #usertype, username, permissiontype, value
 change_plan_permission(conn, plan_id, ('user', 'username', 'clone', False))
+
+
+#Add a task about "script" type
+job_id = "DNSWRD-CIM-JOB5"
+task_description = "1234"
+is_task_disabled = False
+script_location = "INLINE"
+script = "pwd"
+argument = ""
+environment_variables = ""
+working_sub_directory = ""
+add_job_task_script(conn, job_id, is_task_disabled,task_description, script_location, script, argument, environment_variables,
+                    working_sub_directory)

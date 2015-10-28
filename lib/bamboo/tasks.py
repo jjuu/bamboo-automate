@@ -129,13 +129,13 @@ def update_task(conn, job_id, task_id, task_params):
     return res
 
 
-def add_job_task(conn, job_id, task_id, task_params):
+def add_job_task(conn, job_id,  task_params):
     params = {
         "bamboo.successReturnMode": "json",
         "planKey": job_id,
         "checkBoxFields": "taskDisabled",
         "confirm": "true",
-        "createTaskKey": task_id,
+        "createTaskKey": "",
         "decorator": "nothing",
         "taskId": 0,
         "finalising": "true",
@@ -222,3 +222,28 @@ def add_repository(conn, job_id, task_id, repository_id, checkout_dir):
 
     return update_task(conn, job_id, task_id, task_params)
 
+
+def add_job_task_script(conn, job_id, is_task_disabled=False, task_description="", script_location="INLINE",
+                        script="pwd", argument="", environment_variables="", working_sub_directory=""):
+    script_params = {
+        "userDescription": task_description,
+        "checkBoxFields": "taskDisabled",
+        "scriptLocation": script_location,
+        "selectFields": "scriptLocation",
+        "checkBoxFields": "runWithPowershell",
+        "script": script if script_location == "FILE" else "",
+        "scriptBody": script if script_location == "INLINE" else "",
+        "argument": argument,
+        "environmentVariables": environment_variables,
+        "workingSubDirectory": working_sub_directory,
+        "createTaskKey": "com.atlassian.bamboo.plugins.scripttask:task.builder.script",
+        "taskId": "0",
+        "planKey": job_id,
+        "bamboo.successReturnMode": "json",
+        "decorator": "nothing",
+        "confirm": "true"
+    }
+    if is_task_disabled:
+        script_params['taskDisabled'] = 'true'
+
+    return add_job_task(conn, job_id, script_params)
