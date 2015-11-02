@@ -67,22 +67,38 @@ def delete_job_all_requirements(conn, job_id):
     return res
 
 
-def add_job_requirement(conn, job_id, req_key, req_value, req_exists=False):
+def get_job_requirement(conn, job_id):
+    requirements = {}
+    res = requests.get_ui_return_json(
+        conn,
+        conn.baseurl + '/rest/api/latest/config/job/' + job_id + '/requirement', None)
+    if not res:
+        return requirements
+    for re in res:
+        key = re.get('key')
+        if key:
+            requirements[key] = {
+                'key': key,
+                'matchType': re.get('matchType'),
+                'matchValue': re.get('matchValue')
+            }
+    return requirements
+
+
+def add_job_requirement(conn, job_id, req_key, req_value):
+    requirements = get_job_requirement(conn, job_id)
+    if requirements and req_key in requirements.keys():
+        return None
     params = {
-        "Add": "Add",
-        "buildKey": job_id,
-        "existingRequirement": req_key if req_exists else None,
-        "regexMatchValue": None,
-        "key": None if req_exists else req_key,
+        "key": req_key,
         "matchType": "EQUALS",
-        "matchValue": req_value,
-        "selectFields": "existingRequirement",
-        "selectFields": "requirementMatchType"
+        "matchValue": req_value
     }
     logging.debug(params)
     res = requests.post_ui_return_json(
         conn,
-        conn.baseurl + '/build/admin/edit/addBuildRequirement.action',
-        params)
+        conn.baseurl + '/rest/api/latest/config/job/' + job_id + '/requirement',
+        params, content_type='application/json')
 
     return res
+

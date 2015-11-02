@@ -148,3 +148,9 @@ environment_variables = ""
 working_sub_directory = ""
 add_job_task_script(conn, job_id, is_task_disabled, is_run_with_power_shell, task_description, script_location, script,
                     argument, environment_variables, working_sub_directory)
+
+#add agents to each job
+job_id="DNSWRD-CIM-JOB11"
+req_key="agent.name"
+req_value="agent"
+res=add_job_requirement(conn, job_id, req_key, req_value)

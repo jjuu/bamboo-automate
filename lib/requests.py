@@ -43,8 +43,10 @@ def post_ui_return_html(conn, path, params):
   res, _, _ = _request(conn, "POST", path, params, [], urllib.urlencode, html.fromstring)
   return res
 
-def post_ui_return_json(conn, path, params):
+def post_ui_return_json(conn, path, params,content_type=None):
   headers = [('Accept', 'application/json')]
+  if content_type:
+      headers.append(('Content-Type', content_type))
   try:
     res, _, _ = _request(conn, "POST", path, params, headers, urllib.urlencode, json.loads)
   except:
@@ -108,13 +110,17 @@ def _request(conn, method, path, params, headers, param_parse_func, response_par
   if len(cookies) > 0:
     req.add_header('Cookie', cookies)
 
+  content_type=req.headers.get('Content-type')
   retries = 0
   req_success = False
   while not req_success:
     logging.debug('%s', req.get_full_url())
     try:
       if method == "POST":
-        response = conn.opener.open(req, param_parse_func(params))
+          if content_type and content_type=='application/json':
+              response= conn.opener.open(req,json.dumps(params))
+          else:
+              response = conn.opener.open(req, param_parse_func(params))
       elif method == "GET":
         response = conn.opener.open(req)
       req_success = True
