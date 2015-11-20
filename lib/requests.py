@@ -117,10 +117,12 @@ def _request(conn, method, path, params, headers, param_parse_func, response_par
     logging.debug('%s', req.get_full_url())
     try:
       if method == "POST":
-          if content_type and content_type=='application/json':
-              response= conn.opener.open(req,json.dumps(params))
-          else:
-              response = conn.opener.open(req, param_parse_func(params))
+        if content_type and content_type=='application/json':
+          response= conn.opener.open(req, json.dumps(params))
+        elif param_parse_func == urllib.urlencode:
+          response = conn.opener.open(req, param_parse_func(params, True))
+        else:
+          response = conn.opener.open(req, param_parse_func(params))
       elif method == "GET":
         response = conn.opener.open(req)
       req_success = True
@@ -136,6 +138,7 @@ def _request(conn, method, path, params, headers, param_parse_func, response_par
     raise urllib2.HTTPError(code=response.getcode())
 
   response_content = response.read()
+
   try:
     res = response_parse_func(response_content)
   except:
