@@ -32,6 +32,7 @@ def _get_entity(conn, entity, expand):
     params = {
         "expand": expand
     }
+
     res = _iterate_json_entity_results(
         requests.get_rest_return_json,
         conn,
@@ -50,6 +51,42 @@ def get_projects(conn, expand=''):
     return _get_entity(conn, 'project', expand)
 
 
+def get_plans_of_project(conn, project_id):
+
+    params = {
+        'expand': 'plans.plan',
+        'start-index': 0
+    }
+
+    start_index = 0
+    plans = []
+
+    res = requests.get_rest_return_json(
+            conn,
+            conn.baseurl + '/rest/api/latest/project/%s' % project_id,
+            params)
+
+    plans.extend(res['plans']['plan'])
+
+    part_result_size = res['plans']['max-result']
+    result_size = res['plans']['size']
+
+    while start_index <= result_size:
+        start_index = start_index + part_result_size
+        params.update({'start-index': start_index})
+
+        res = requests.get_rest_return_json(
+            conn,
+            conn.baseurl + '/rest/api/latest/project/%s' % project_id,
+            params)
+
+        for p in res['plans']['plan']:
+            if p not in plans:
+                plans.append(p)
+
+    return plans
+
+
 def get_plan_params(conn, plan_id):
     params = {
         "buildKey": plan_id
@@ -59,6 +96,7 @@ def get_plan_params(conn, plan_id):
         conn,
         conn.baseurl + '/chain/admin/config/editChainDetails.action',
         params)
+
     html_root = res
     plan_params = OrderedDict()
     form = html_root.find('.//form[@id="saveChainDetails"]')
@@ -81,6 +119,7 @@ def get_plan_params(conn, plan_id):
 
 def disable_plan(conn, plan_id):
     plan_params = get_plan_params(conn, plan_id)
+
     params = {
         "buildKey": plan_params.get('buildKey'),
         "projectName": plan_params.get('projectName'),
@@ -100,6 +139,7 @@ def disable_plan(conn, plan_id):
 
 def enable_plan(conn, plan_id):
     plan_params = get_plan_params(conn, plan_id)
+
     params = {
         "buildKey": plan_params.get('buildKey'),
         "projectName": plan_params.get('projectName'),
@@ -109,6 +149,7 @@ def enable_plan(conn, plan_id):
         "enabled": "true",
         "save": "Save"
     }
+
     res = requests.get_ui_return_html(
         conn,
         conn.baseurl + '/chain/admin/config/saveChainDetails.action',
