@@ -1,6 +1,8 @@
-import logging
-from .. import requests
 import re
+import logging
+
+from . import constants
+from .. import requests
 
 
 def _get_requirements(conn, job_id):
@@ -72,12 +74,15 @@ def get_job_requirement(conn, job_id):
     res = requests.get_ui_return_json(
         conn,
         conn.baseurl + '/rest/api/latest/config/job/' + job_id + '/requirement', None)
+
     if not res:
         return requirements
+
     for re in res:
         key = re.get('key')
         if key:
             requirements[key] = {
+                'rid': re.get('id'),
                 'key': key,
                 'matchType': re.get('matchType'),
                 'matchValue': re.get('matchValue')
@@ -85,20 +90,71 @@ def get_job_requirement(conn, job_id):
     return requirements
 
 
-def add_job_requirement(conn, job_id, req_key, req_value):
-    requirements = get_job_requirement(conn, job_id)
-    if requirements and req_key in requirements.keys():
+def add_job_requirement(conn, job_id, require_key, require_type, require_value=None, mode='update'):
+    if require_type not in constants.requirements:
+        logging.error('Invalid require type: %s' % require_type)
         return None
-    params = {
-        "key": req_key,
-        "matchType": "EQUALS",
-        "matchValue": req_value
-    }
-    logging.debug(params)
-    res = requests.post_ui_return_json(
-        conn,
-        conn.baseurl + '/rest/api/latest/config/job/' + job_id + '/requirement',
-        params, content_type='application/json')
 
-    return res
+    require_type = require_type.upper()
+    requirements = get_job_requirement(conn, job_id)
 
+    if requirements and require_key in requirements.keys():
+        requirement = requirements[require_key]
+        rid = requirement['rid']
+
+        if require_type != 'EXISTS':
+            if mode == constants.REQUIREMENT_MODIFY_MODE_ADD:
+                logging.info('Key(%s) already in job(%s). Do nothing about it.' % (require_key, job_id))
+                return
+            elif mode == constants.REQUIREMENT_MODIFY_MODE_APPEND:
+                origin_value = requirements[require_key].get('matchValue')
+                if require_value in origin_value.split(constants.AGENT_SLICE_MARK):
+                    logging.info('Agent(%s) already exists in %s. ' % (require_value, origin_value))
+                    return
+                else:
+                    logging.info('Key(%s) already in job(%s). Append new agent to the end.' % (require_key, job_id))
+
+                require_value = origin_value + constants.AGENT_SLICE_MARK + require_value
+            elif mode == constants.REQUIREMENT_MODIFY_MODE_UPDATE:
+                logging.info('Key(%s) already in job(%s). Update to %s :: %s :: %s.'
+                             % (require_key, job_id, require_key, require_type, require_value))
+            else:
+                logging.error('Invalid mode.')
+                return
+
+            params = {
+                'id': rid,
+                'matchType': require_type,
+                'matchValue': require_value
+            }
+        else:
+            params = {
+                'id': rid,
+                'matchType': require_type
+            }
+
+        res = requests.put_rest_return_json(
+                conn,
+                '/rest/api/latest/config/job/%s/requirement/%s' % (job_id, requirement['rid']),
+                params
+        )
+
+        return res
+    else:
+        params = {
+            "key": require_key,
+            "matchType": require_type
+        }
+
+        if require_value is not None:
+            params['matchValue'] = require_value
+
+        res = requests.post_ui_return_json(
+            conn,
+            conn.baseurl + '/rest/api/latest/config/job/' + job_id + '/requirement',
+            params,
+            content_type='application/json')
+
+        logging.info('Add agent(%s :: %s :: %s) to job(%s).'
+                     % (require_key, require_type, require_value, job_id))
+        return res

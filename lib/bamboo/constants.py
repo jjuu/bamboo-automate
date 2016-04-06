@@ -54,7 +54,7 @@ TASK_TYPES = ['script_location']
 TASK_VARIABLE_NAMES = ['{job_name}']
 KEY_OF_JOB_NAME = 'job_name'
 
-bamboo_host_default = 'http://sw-bamboo.freescale.net'
+bamboo_host_default = ''      # the bamboo host, for example http://my-bamboo.host.net
 bamboo_baseurl = ''
 
 FINISH_MSG = '######## Finish %s .... ########'
