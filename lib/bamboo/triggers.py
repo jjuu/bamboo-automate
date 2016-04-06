@@ -1,8 +1,10 @@
 
-from lxml import html
+import logging
 from collections import OrderedDict
 
 from .. import requests
+
+import constants
 
 
 def get_trigger_id_list(conn, plan_id, trigger_name, trigger_desc=None):
@@ -27,7 +29,12 @@ def get_trigger_id_list(conn, plan_id, trigger_name, trigger_desc=None):
 
     trigger_id_list = []
 
-    trigger_list = html_root.find('.//div[@id="panel-editor-list"]').findall('.//li[@class="item"]')
+    editor_html = html_root.find('.//div[@id="panel-editor-list"]')
+    if editor_html is None:
+        logging.error(constants.INCORRECT_PLAN_KEY_ERROR_MSG % plan_id)
+        return None
+
+    trigger_list = editor_html.findall('.//li[@class="item"]')
     for index, trigger_html in enumerate(trigger_list):
         tri_name = trigger_html.find('.//*[@class="item-title"]').text.lower()
         tri_desc_html = trigger_html.find('.//*[@class="item-description"]')
@@ -38,13 +45,13 @@ def get_trigger_id_list(conn, plan_id, trigger_name, trigger_desc=None):
             tri_desc = None
 
         if tri_name == trigger_name \
-                and (trigger_desc is None or tri_desc == trigger_desc):
+                and (trigger_desc is None or tri_desc == trigger_desc.lower()):
             trigger_id_list.append(index+1)
 
     return trigger_id_list
 
 
-def update_trigger_to_commit(conn, plan_id, enable_repos_list, trigger_name, trigger_desc=None,
+def update_trigger_to_commit(conn, plan_id, trigger_name, enable_repos_list, trigger_desc=None,
                              raise_multiple_triggers=False):
     """
     This method is for bamboo v5.7.2
@@ -63,6 +70,8 @@ def update_trigger_to_commit(conn, plan_id, enable_repos_list, trigger_name, tri
     :return:
     """
     trigger_id_list = get_trigger_id_list(conn, plan_id, trigger_name, trigger_desc)
+    if trigger_id_list is None:
+        return
 
     if raise_multiple_triggers and len(trigger_id_list) > 0:
         raise Exception('Multiple triggers!')
