@@ -4,10 +4,19 @@ from .. import requests
 from collections import OrderedDict
 
 
+def get_job_short_key(job_key):
+    keys = job_key.split('-')
+    if len(keys) != 3:
+        raise Exception('Job key error')
+    else:
+        return keys[-1]
+
+
 def get_jobs(conn, plan_id, sort_by_title=False):
     params = {
         "buildKey": plan_id
     }
+
     res = requests.get_ui_return_html(
         conn,
         conn.baseurl + '/chain/admin/config/editChainDetails.action',
@@ -46,6 +55,7 @@ def get_job_params(conn, job_id):
         conn,
         conn.baseurl + '/build/admin/edit/editBuildDetails.action',
         params)
+
     html_root = res
     job_params = OrderedDict()
     form = html_root.find('.//form[@id="updateBuildDetails"]')
@@ -94,6 +104,7 @@ def enable_job(conn, job_id):
         "enabled": "true",
         "save": "Save"
     }
+
     res = requests.get_ui_return_html(
         conn,
         conn.baseurl + '/build/admin/edit/updateBuildDetails.action',
@@ -103,21 +114,98 @@ def enable_job(conn, job_id):
 
 
 def add_one_job(conn, plan_id, job_name, job_description, is_enabled=True, job_key=None):
+
+    if job_key:
+        sub_build_key = job_key.upper()
+    else:
+        sub_build_key = job_name.upper()
+
+    sub_build_key = filter(str.isupper, sub_build_key.upper())
+
     params = {
-        "bamboo.successReturnMode": "json",
         "buildKey": plan_id,
+        "existingStage": "Build and Analyze",
         "buildName": job_name,
-        "subBuildKey": job_key.upper() if job_key else job_name.upper(),
+        "subBuildKey": sub_build_key,
         "buildDescription": job_description,
-        "existingStage": "Default Stage",
-        "checkBoxFields": "tmp.createAsEnabled",
         "tmp.createAsEnabled": "true" if is_enabled else "false",
-        "save": "Create job"
+        "checkBoxFields": "tmp.createAsEnabled",
+        "bamboo.successReturnMode": "json-as-html",
+        "confirm": "nothing"
     }
 
-    res = requests.post_ui_return_json(
+    res = requests.post_ui_no_return(
         conn,
         conn.baseurl + '/chain/admin/createJob.action',
         params)
+
+    return res
+
+
+def change_jobs_status_by_key(conn, plan_id, job_keys, enable_true_disable_false=False):
+    if not job_keys:
+        return
+
+    jobs = get_jobs(conn, plan_id)
+
+    for job_key, job_info in jobs.iteritems():
+        short_job_key = get_job_short_key(job_key)
+        if short_job_key in job_keys:
+            if enable_true_disable_false:
+                enable_job(conn, job_key)
+                logging.info('Enable job: %s :: %s' % (job_info[0], short_job_key))
+            else:
+                disable_job(conn, job_key)
+                logging.info('Disable job: %s :: %s' % (job_info[0], short_job_key))
+
+
+def get_stages(conn, plan_id):
+    params = {
+        "planKey": plan_id
+    }
+
+    html_root = requests.get_ui_return_html(
+        conn,
+        conn.baseurl + '/chain/admin/config/defaultStages.action',
+        params)
+
+    return html_root
+
+
+def clone_job(conn, plan_id, stage_name, job_name, job_short_id, plan_id_to_clone, job_id_to_clone,
+              desc='', enable_job_flag=True):
+    if stage_name is None:
+        html_root = get_stages(conn, plan_id)
+        stages = html_root.find('.//ul[@id="editstages"]').findall('.//dt')
+        if not stages:
+            logging.error('No stages found.')
+        else:
+            stage_name = stages[0].text
+
+    params = {
+        'buildKey': plan_id,
+        'buildName': job_name,
+        'subBuildKey': job_short_id,
+        'chainKeyToClone': plan_id_to_clone,
+        'jobKeyToClone': job_id_to_clone,
+        'selectFields': ['chainKeyToClone', 'jobKeyToClone'],
+        'existingStage': stage_name,
+        'buildDescription': desc,
+        'checkBoxFields': 'tmp.createAsEnabled',
+        'cloneJob': 'true',
+        'ignoreUnclonableSubscriptions': 'false',
+        'bamboo.successReturnMode': 'json',
+        'decorator': 'nothing',
+        'confirm': 'true'
+    }
+
+    if enable_job_flag is True or enable_job_flag == 'true':
+        params['tmp.createAsEnabled'] = 'true'
+
+    res = requests.post_ui_return_html(
+        conn,
+        conn.baseurl + '/chain/admin/createClonedJob.action',
+        params
+    )
 
     return res
